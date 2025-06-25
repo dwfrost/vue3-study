@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue2 vs Vue3 基础对比</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .section {
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .section h3 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+    .vue2 { border-left: 4px solid #42b883; }
+    .vue3 { border-left: 4px solid #4fc08d; }
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    .demo {
+      margin: 10px 0;
+      padding: 15px;
+      background: #f0f9ff;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vue2 vs Vue3 基础对比示例</h1>
+
+  <div class="comparison">
+    <div class="section vue2">
+      <h3>Vue2 Options API</h3>
+      <div id="vue2-app">
+        <p>计数: {{ count }}</p>
+        <p>双倍: {{ doubleCount }}</p>
+        <button @click="increment">增加</button>
+        <button @click="reset">重置</button>
+      </div>
+      
+      <h4>代码实现：</h4>
+      <pre><code>new Vue({
+  el: '#vue2-app',
+  data: {
+    count: 0
+  },
+  computed: {
+    doubleCount() {
+      return this.count * 2
+    }
+  },
+  methods: {
+    increment() {
+      this.count++
+    },
+    reset() {
+      this.count = 0
+    }
+  },
+  mounted() {
+    console.log('Vue2 组件已挂载')
+  }
+})</code></pre>
+    </div>
+
+    <div class="section vue3">
+      <h3>Vue3 Composition API</h3>
+      <div id="vue3-app">
+        <p>计数: {{ count }}</p>
+        <p>双倍: {{ doubleCount }}</p>
+        <button @click="increment">增加</button>
+        <button @click="reset">重置</button>
+      </div>
+
+      <h4>代码实现：</h4>
+      <pre><code>const { createApp, ref, computed, onMounted } = Vue
+
+createApp({
+  setup() {
+    const count = ref(0)
+    
+    const doubleCount = computed(() => count.value * 2)
+    
+    const increment = () => {
+      count.value++
+    }
+    
+    const reset = () => {
+      count.value = 0
+    }
+    
+    onMounted(() => {
+      console.log('Vue3 组件已挂载')
+    })
+    
+    return {
+      count,
+      doubleCount,
+      increment,
+      reset
+    }
+  }
+}).mount('#vue3-app')</code></pre>
+    </div>
+  </div>
+
+  <div class="demo">
+    <h3>🔍 对比分析</h3>
+    <ul>
+      <li><strong>逻辑组织</strong>：Vue3的setup函数将相关逻辑集中在一起</li>
+      <li><strong>类型推导</strong>：Vue3提供更好的TypeScript支持</li>
+      <li><strong>代码复用</strong>：Vue3可以轻松提取为composable函数</li>
+      <li><strong>性能</strong>：Vue3的响应式系统基于Proxy，性能更优</li>
+    </ul>
+  </div>
+
+  <!-- Vue2 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+  <!-- Vue3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <script>
+    // Vue2 实现
+    new Vue({
+      el: '#vue2-app',
+      data: {
+        count: 0
+      },
+      computed: {
+        doubleCount() {
+          return this.count * 2
+        }
+      },
+      methods: {
+        increment() {
+          this.count++
+        },
+        reset() {
+          this.count = 0
+        }
+      },
+      mounted() {
+        console.log('Vue2 组件已挂载')
+      }
+    })
+
+    // Vue3 实现
+    const { createApp, ref, computed, onMounted } = Vue
+
+    createApp({
+      setup() {
+        const count = ref(0)
+        
+        const doubleCount = computed(() => count.value * 2)
+        
+        const increment = () => {
+          count.value++
+        }
+        
+        const reset = () => {
+          count.value = 0
+        }
+        
+        onMounted(() => {
+          console.log('Vue3 组件已挂载')
+        })
+        
+        return {
+          count,
+          doubleCount,
+          increment,
+          reset
+        }
+      }
+    }).mount('#vue3-app')
+  </script>
+</body>
+</html> 
