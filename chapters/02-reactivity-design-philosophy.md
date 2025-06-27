@@ -359,9 +359,73 @@ Vue3响应式系统采用清晰的分层架构：
 ### 2.4.2 依赖收集系统的设计
 
 ```javascript
-// 全局的依赖收集栈
-const effectStack = []
-let activeEffect = null
+// 全局依赖收集状态
+const effectStack = []  // effect执行栈，支持嵌套effect
+let activeEffect = null // 当前正在执行的effect
+const targetMap = new WeakMap() // 存储依赖关系的全局映射
+
+// Effect类：封装副作用函数
+class ReactiveEffect {
+  constructor(fn, scheduler = null) {
+    this.fn = fn
+    this.scheduler = scheduler
+    this.deps = []  // 存储依赖此effect的dep集合
+    this.active = true
+  }
+  
+  run() {
+    if (!this.active) {
+      return this.fn()
+    }
+    
+    // 清理之前的依赖
+    cleanupEffect(this)
+    
+    try {
+      // 设置当前活跃effect
+      effectStack.push(this)
+      activeEffect = this
+      
+      // 执行副作用函数，期间会触发依赖收集
+      return this.fn()
+    } finally {
+      // 恢复之前的activeEffect
+      effectStack.pop()
+      activeEffect = effectStack[effectStack.length - 1] || null
+    }
+  }
+  
+  stop() {
+    if (this.active) {
+      cleanupEffect(this)
+      this.active = false
+    }
+  }
+}
+
+// 创建effect的工厂函数
+function effect(fn, options = {}) {
+  const _effect = new ReactiveEffect(fn, options.scheduler)
+  
+  // 立即执行一次，建立依赖关系
+  _effect.run()
+  
+  // 返回runner函数，可以手动重新执行
+  const runner = _effect.run.bind(_effect)
+  runner.effect = _effect
+  return runner
+}
+
+// 清理effect的所有依赖
+function cleanupEffect(effect) {
+  const { deps } = effect
+  if (deps.length) {
+    for (let i = 0; i < deps.length; i++) {
+      deps[i].delete(effect)
+    }
+    deps.length = 0
+  }
+}
 
 // 依赖收集的核心实现
 function track(target, type, key) {
@@ -382,8 +446,8 @@ function track(target, type, key) {
   
   // 建立双向依赖关系
   if (!dep.has(activeEffect)) {
-    dep.add(activeEffect)
-    activeEffect.deps.push(dep)
+    dep.add(activeEffect)           // dep收集effect
+    activeEffect.deps.push(dep)     // effect记录dep
   }
 }
 
@@ -398,20 +462,156 @@ function trigger(target, type, key, newValue, oldValue) {
   if (key !== void 0) {
     const dep = depsMap.get(key)
     if (dep) {
-      dep.forEach(effect => effects.add(effect))
+      dep.forEach(effect => {
+        // 避免无限循环：不触发当前正在执行的effect
+        if (effect !== activeEffect) {
+          effects.add(effect)
+        }
+      })
     }
   }
   
-  // 批量执行effect
+  // 执行所有收集到的effect
   effects.forEach(effect => {
-    if (effect !== activeEffect) {
-      effect()
+    if (effect.scheduler) {
+      // 如果有调度器，使用调度器执行
+      effect.scheduler(effect)
+    } else {
+      // 否则直接执行
+      effect.run()
     }
   })
 }
+
+// 使用示例
+const state = reactive({ count: 0, name: 'Vue' })
+
+// 创建effect，会立即执行并建立依赖关系
+const runner = effect(() => {
+  console.log(`${state.name}: ${state.count}`)  // 读取时触发track
+})
+
+// 修改数据，触发effect重新执行
+state.count++  // 写入时触发trigger，effect重新执行
 ```
 
-### 2.4.3 调度系统的设计
+### 2.4.3 依赖收集与触发流程图
+
+**依赖收集与触发完整流程：**
+
+```mermaid
+graph TD
+    A["创建effect(fn)"] --> B["new ReactiveEffect(fn)"]
+    B --> C["effect.run()"]
+    C --> D["设置activeEffect = effect"]
+    D --> E["执行fn()"]
+    E --> F["访问响应式数据"]
+    F --> G["触发Proxy get陷阱"]
+    G --> H["调用track(target, key)"]
+    H --> I["建立依赖关系"]
+    I --> J["dep.add(activeEffect)"]
+    J --> K["activeEffect.deps.push(dep)"]
+    K --> L["依赖收集完成"]
+    
+    M["修改响应式数据"] --> N["触发Proxy set陷阱"]
+    N --> O["调用trigger(target, key)"]
+    O --> P["查找依赖的effects"]
+    P --> Q["遍历执行effects"]
+    Q --> R["effect.run()"]
+    R --> S["重新执行副作用函数"]
+    
+    style A fill:#e1f5fe
+    style M fill:#fff3e0
+    style L fill:#e8f5e8
+    style S fill:#e8f5e8
+```
+
+**数据结构关系图：**
+
+```mermaid
+graph LR
+    subgraph "targetMap (WeakMap)"
+        T1["target1"] --> DM1["depsMap (Map)"]
+        T2["target2"] --> DM2["depsMap (Map)"]
+    end
+    
+    subgraph "depsMap (Map)"
+        DM1 --> K1["key1"] --> D1["dep (Set)"]
+        DM1 --> K2["key2"] --> D2["dep (Set)"]
+    end
+    
+    subgraph "dep (Set)"
+        D1 --> E1["effect1"]
+        D1 --> E2["effect2"]
+        D2 --> E3["effect3"]
+    end
+    
+    subgraph "ReactiveEffect"
+        E1 --> F1["fn1"]
+        E1 --> DEPS1["deps: [D1, D2]"]
+        E2 --> F2["fn2"]
+        E2 --> DEPS2["deps: [D1]"]
+    end
+    
+    style T1 fill:#ffeb3b
+    style T2 fill:#ffeb3b
+    style DM1 fill:#4caf50
+    style DM2 fill:#4caf50
+    style D1 fill:#2196f3
+    style D2 fill:#2196f3
+    style E1 fill:#ff9800
+    style E2 fill:#ff9800
+```
+
+**具体执行示例：**
+
+```javascript
+// 示例：展示完整的依赖收集和触发过程
+const state = reactive({ count: 0, name: 'Vue' })
+
+// 1. 创建第一个effect
+const effect1 = effect(() => {
+  console.log('Effect1:', state.count)  // 依赖 state.count
+})
+
+// 2. 创建第二个effect  
+const effect2 = effect(() => {
+  console.log('Effect2:', state.count + state.name)  // 依赖 state.count 和 state.name
+})
+
+// 此时依赖关系：
+// targetMap.get(state).get('count') = Set([effect1, effect2])
+// targetMap.get(state).get('name') = Set([effect2])
+
+// 3. 修改count，会触发effect1和effect2
+state.count = 1
+
+// 4. 修改name，只会触发effect2
+state.name = 'Vue3'
+```
+
+**嵌套effect的处理：**
+
+```javascript
+// 嵌套effect示例
+const outer = effect(() => {
+  console.log('Outer effect start')
+  
+  const inner = effect(() => {
+    console.log('Inner effect:', state.count)
+  })
+  
+  console.log('Outer effect end')
+})
+
+// effectStack的变化过程：
+// 1. [] -> [outer]           (执行outer effect)
+// 2. [outer] -> [outer, inner] (执行inner effect)  
+// 3. [outer, inner] -> [outer]  (inner执行完毕)
+// 4. [outer] -> []              (outer执行完毕)
+```
+
+### 2.4.4 调度系统的设计
 
 Vue3的调度系统负责优化更新时机：
 

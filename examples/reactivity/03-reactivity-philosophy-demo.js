@@ -208,7 +208,7 @@ class ReactivityAPI {
       get(target, key, receiver) {
         const result = Reflect.get(target, key, receiver)
         if (typeof result === 'object' && result !== null) {
-          return this.readonly(result) // 递归只读
+          return new ReactivityAPI().readonly(result) // 递归只读
         }
         return result
       },
