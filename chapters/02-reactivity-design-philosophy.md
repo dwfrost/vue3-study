@@ -483,6 +483,62 @@ function trigger(target, type, key, newValue, oldValue) {
   })
 }
 
+// reactive函数实现
+function reactive(target) {
+  if (typeof target !== 'object' || target === null) {
+    return target
+  }
+  
+  return new Proxy(target, {
+    get(target, key, receiver) {
+      // 获取属性值
+      const result = Reflect.get(target, key, receiver)
+      
+      // 依赖收集：在这里调用track
+      track(target, 'get', key)
+      
+      // 如果值是对象，递归代理（惰性）
+      if (typeof result === 'object' && result !== null) {
+        return reactive(result)
+      }
+      
+      return result
+    },
+    
+    set(target, key, value, receiver) {
+      // 获取旧值
+      const oldValue = target[key]
+      
+      // 设置新值
+      const result = Reflect.set(target, key, value, receiver)
+      
+      // 依赖触发：在这里调用trigger
+      if (oldValue !== value) {
+        trigger(target, 'set', key, value, oldValue)
+      }
+      
+      return result
+    },
+    
+    deleteProperty(target, key) {
+      const hadKey = hasOwn(target, key)
+      const oldValue = target[key]
+      const result = Reflect.deleteProperty(target, key)
+      
+      if (result && hadKey) {
+        trigger(target, 'delete', key, undefined, oldValue)
+      }
+      
+      return result
+    }
+  })
+}
+
+// 工具函数
+function hasOwn(target, key) {
+  return Object.prototype.hasOwnProperty.call(target, key)
+}
+
 // 使用示例
 const state = reactive({ count: 0, name: 'Vue' })
 
@@ -563,6 +619,47 @@ graph LR
     style E2 fill:#ff9800
 ```
 
+**track触发时机详解：**
+
+`track`函数在以下时机被调用：
+
+1. **Proxy的get陷阱中**：当访问响应式对象的属性时
+2. **必须有activeEffect**：只有在effect执行期间才收集依赖
+3. **每次属性访问都会调用**：包括计算属性、watch、组件渲染等
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码
+    participant Effect as Effect系统
+    participant Proxy as Proxy代理
+    participant Track as track函数
+    participant Trigger as trigger函数
+    
+    User->>Effect: effect(() => state.count)
+    Effect->>Effect: 创建ReactiveEffect实例
+    Effect->>Effect: 设置activeEffect
+    Effect->>User: 执行副作用函数
+    User->>Proxy: 访问 state.count
+    Proxy->>Proxy: 执行get陷阱
+    Proxy->>Track: track(target, 'get', 'count')
+    Track->>Track: 收集依赖到targetMap
+    Proxy->>User: 返回属性值
+    Effect->>Effect: 清除activeEffect
+    
+    Note over User,Effect: 依赖收集完成
+    
+    User->>Proxy: state.count = 1
+    Proxy->>Proxy: 执行set陷阱
+    Proxy->>Trigger: trigger(target, 'set', 'count', 1, 0)
+    Trigger->>Trigger: 查找依赖的effects
+    Trigger->>Effect: 重新执行effect
+    Effect->>Effect: 设置activeEffect
+    Effect->>User: 执行副作用函数
+    User->>Proxy: 再次访问 state.count
+    Proxy->>Track: track(target, 'get', 'count')
+    Track->>Track: 重新收集依赖
+```
+
 **具体执行示例：**
 
 ```javascript
@@ -588,6 +685,63 @@ state.count = 1
 
 // 4. 修改name，只会触发effect2
 state.name = 'Vue3'
+
+// 5. 演示track的具体触发时机
+console.log('=== track触发时机演示 ===')
+
+// 当没有activeEffect时，track不会执行
+console.log('直接访问属性（无effect）:')
+console.log(state.count) // 触发get陷阱，但track函数中会直接return
+
+// 当有activeEffect时，track才会收集依赖
+console.log('在effect中访问属性:')
+effect(() => {
+  console.log('Effect执行中，访问state.count')
+  const value = state.count // 这里会触发track收集依赖
+  console.log('获取到值:', value)
+})
+
+// 6. track触发时机总结
+console.log('=== track触发时机总结 ===')
+/*
+track函数的触发时机：
+1. 必须在Proxy的get陷阱中调用
+2. 必须有activeEffect存在
+3. 每次访问响应式对象属性都会调用
+4. 用于建立effect与响应式数据的依赖关系
+*/
+```
+
+**track触发时机完整流程图：**
+
+```mermaid
+graph TD
+    A["用户代码访问响应式数据"] --> B["Proxy get陷阱被触发"]
+    B --> C["调用track(target, 'get', key)"]
+    C --> D{"检查activeEffect"}
+    D -->|有| E["收集依赖到targetMap"]
+    D -->|无| F["跳过依赖收集"]
+    
+    G["用户代码修改响应式数据"] --> H["Proxy set陷阱被触发"]
+    H --> I["调用trigger(target, 'set', key)"]
+    I --> J["查找targetMap中的依赖"]
+    J --> K["执行所有相关effects"]
+    K --> L["effect.run()重新执行"]
+    L --> M["重新访问响应式数据"]
+    M --> B
+    
+    N["effect(() => {...})"] --> O["创建ReactiveEffect"]
+    O --> P["设置activeEffect"]
+    P --> Q["执行副作用函数"]
+    Q --> A
+    
+    style A fill:#e3f2fd
+    style G fill:#fff3e0
+    style N fill:#f3e5f5
+    style E fill:#e8f5e8
+    style F fill:#ffebee
+    style K fill:#e8f5e8
+```
 ```
 
 **嵌套effect的处理：**
