@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第9章：Vue3指令系统演示</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .demo-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .input-field {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .loading-container {
+            position: relative;
+            min-height: 120px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .loading-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-text {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .draggable-item {
+            display: inline-block;
+            padding: 15px 25px;
+            background: #3498db;
+            color: white;
+            border-radius: 6px;
+            cursor: grab;
+            user-select: none;
+            margin: 10px;
+            position: relative;
+        }
+        
+        .draggable-item:active {
+            cursor: grabbing;
+        }
+        
+        .permission-demo {
+            padding: 10px;
+            margin: 5px;
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 4px;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background: #f39c12;
+            color: white;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>🚀 Vue3指令系统完整演示</h1>
+            <p>本演示展示了Vue3指令系统的核心特性，包括内置指令的使用和自定义指令的开发。</p>
+            
+            <!-- 1. 条件渲染指令 -->
+            <div class="section">
+                <h3>1. 条件渲染指令 (v-if / v-show)</h3>
+                
+                <div class="demo-item">
+                    <h4>v-if 演示</h4>
+                    <button class="btn" @click="toggleShow">
+                        {{ showContent ? '隐藏内容' : '显示内容' }}
+                    </button>
+                    <div v-if="showContent" class="status success">
+                        ✅ 这是通过 v-if 控制的内容 (DOM中存在/不存在)
+                    </div>
+                    <div class="code-block">
+&lt;div v-if="showContent"&gt;内容&lt;/div&gt;
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>v-show 演示</h4>
+                    <button class="btn" @click="toggleVisible">
+                        {{ isVisible ? '隐藏元素' : '显示元素' }}
+                    </button>
+                    <div v-show="isVisible" class="status info">
+                        ℹ️ 这是通过 v-show 控制的内容 (display: none/block)
+                    </div>
+                    <div class="code-block">
+&lt;div v-show="isVisible"&gt;内容&lt;/div&gt;
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2. 列表渲染指令 -->
+            <div class="section">
+                <h3>2. 列表渲染指令 (v-for)</h3>
+                
+                <div class="demo-item">
+                    <h4>数组渲染</h4>
+                    <button class="btn" @click="addItem">添加项目</button>
+                    <button class="btn btn-danger" @click="removeItem">删除项目</button>
+                    
+                    <ul>
+                        <li v-for="(item, index) in items" :key="item.id" 
+                            style="padding: 5px; margin: 2px; background: #e3f2fd; border-radius: 3px;">
+                            {{ index + 1 }}. {{ item.name }} (ID: {{ item.id }})
+                        </li>
+                    </ul>
+                    
+                    <div class="code-block">
+&lt;li v-for="(item, index) in items" :key="item.id"&gt;
+  {{ index + 1 }}. {{ item.name }}
+&lt;/li&gt;
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>对象渲染</h4>
+                    <div class="grid">
+                        <div v-for="(value, key) in userInfo" :key="key" 
+                             style="padding: 8px; background: #f3e5f5; border-radius: 3px;">
+                            <strong>{{ key }}:</strong> {{ value }}
+                        </div>
+                    </div>
+                    
+                    <div class="code-block">
+&lt;div v-for="(value, key) in userInfo" :key="key"&gt;
+  &lt;strong&gt;{{ key }}:&lt;/strong&gt; {{ value }}
+&lt;/div&gt;
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 3. 事件绑定指令 -->
+            <div class="section">
+                <h3>3. 事件绑定指令 (v-on / @)</h3>
+                
+                <div class="demo-item">
+                    <h4>基础事件绑定</h4>
+                    <button class="btn" @click="handleClick">点击我</button>
+                    <button class="btn" @dblclick="handleDoubleClick">双击我</button>
+                    <div class="status info">{{ eventMessage }}</div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>事件修饰符演示</h4>
+                    <form @submit.prevent="handleSubmit" style="margin: 10px 0;">
+                        <input type="text" v-model="formData" placeholder="输入内容" class="input-field">
+                        <button type="submit" class="btn">提交 (.prevent)</button>
+                    </form>
+                    
+                    <div @click="parentClick" style="padding: 20px; background: #ffebee; border-radius: 4px; margin: 10px 0;">
+                        父级区域
+                        <button class="btn" @click.stop="childClick">子按钮 (.stop)</button>
+                    </div>
+                    
+                    <div class="code-block">
+&lt;form @submit.prevent="handleSubmit"&gt;
+&lt;button @click.stop="childClick"&gt;子按钮&lt;/button&gt;
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 4. 双向绑定指令 -->
+            <div class="section">
+                <h3>4. 双向绑定指令 (v-model)</h3>
+                
+                <div class="demo-item">
+                    <h4>不同表单元素的v-model</h4>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>文本输入: </label>
+                        <input v-model="textInput" placeholder="输入文本" class="input-field">
+                        <span class="highlight">值: {{ textInput }}</span>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>多行文本: </label>
+                        <textarea v-model="textareaInput" rows="3" class="input-field" style="display: block; width: 300px;"></textarea>
+                        <span class="highlight">值: {{ textareaInput }}</span>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>复选框: </label>
+                        <input type="checkbox" v-model="checkboxValue"> 
+                        <span class="highlight">{{ checkboxValue ? '已选中' : '未选中' }}</span>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>单选框: </label>
+                        <input type="radio" v-model="radioValue" value="option1"> 选项1
+                        <input type="radio" v-model="radioValue" value="option2"> 选项2
+                        <span class="highlight">选择: {{ radioValue }}</span>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>下拉选择: </label>
+                        <select v-model="selectValue" class="input-field">
+                            <option value="">请选择</option>
+                            <option value="vue">Vue.js</option>
+                            <option value="react">React</option>
+                            <option value="angular">Angular</option>
+                        </select>
+                        <span class="highlight">选择: {{ selectValue }}</span>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>v-model 修饰符</h4>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>.lazy: </label>
+                        <input v-model.lazy="lazyInput" placeholder="失焦时更新" class="input-field">
+                        <span class="highlight">值: {{ lazyInput }}</span>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>.number: </label>
+                        <input v-model.number="numberInput" type="number" placeholder="自动转数字" class="input-field">
+                        <span class="highlight">值: {{ numberInput }} (类型: {{ typeof numberInput }})</span>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <label>.trim: </label>
+                        <input v-model.trim="trimInput" placeholder="自动去除首尾空格" class="input-field">
+                        <span class="highlight">值: "{{ trimInput }}"</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 5. 自定义指令演示 -->
+            <div class="section">
+                <h3>5. 自定义指令演示</h3>
+                
+                <div class="demo-item">
+                    <h4>v-focus 聚焦指令</h4>
+                    <button class="btn" @click="showFocusInput = !showFocusInput">
+                        {{ showFocusInput ? '隐藏' : '显示' }}输入框
+                    </button>
+                    <div v-if="showFocusInput" style="margin: 10px 0;">
+                        <input v-focus placeholder="自动聚焦的输入框" class="input-field">
+                    </div>
+                    
+                    <div class="code-block">
+// 自定义指令定义
+app.directive('focus', {
+  mounted(el) {
+    el.focus()
+  }
+})
+
+// 使用
+&lt;input v-focus placeholder="自动聚焦" /&gt;
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>v-loading 加载指令</h4>
+                    <button class="btn" @click="toggleLoading">
+                        {{ isLoading ? '停止加载' : '开始加载' }}
+                    </button>
+                    
+                    <div v-loading="isLoading" class="loading-container">
+                        <div v-if="!isLoading">
+                            🎯 这里是内容区域，点击上方按钮查看加载效果
+                        </div>
+                    </div>
+                    
+                    <div class="code-block">
+// v-loading 指令使用
+&lt;div v-loading="isLoading"&gt;内容区域&lt;/div&gt;
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>v-permission 权限指令</h4>
+                    <div style="margin: 10px 0;">
+                        当前权限: 
+                        <select v-model="currentPermission" class="input-field">
+                            <option value="user">普通用户</option>
+                            <option value="admin">管理员</option>
+                            <option value="guest">访客</option>
+                        </select>
+                    </div>
+                    
+                    <div v-permission:admin="currentPermission" class="permission-demo">
+                        🔐 这是管理员专属内容 (需要admin权限)
+                    </div>
+                    
+                    <div v-permission:user="currentPermission" class="permission-demo">
+                        👤 这是用户可见内容 (需要user或admin权限)
+                    </div>
+                    
+                    <div class="code-block">
+// v-permission 指令使用
+&lt;div v-permission:admin="userRole"&gt;管理员内容&lt;/div&gt;
+&lt;div v-permission:user="userRole"&gt;用户内容&lt;/div&gt;
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>v-clickoutside 点击外部指令</h4>
+                    <button class="btn" @click="showDropdown = !showDropdown">
+                        {{ showDropdown ? '关闭' : '打开' }}下拉菜单
+                    </button>
+                    
+                    <div v-if="showDropdown" 
+                         v-clickoutside="() => showDropdown = false"
+                         style="position: relative; display: inline-block; margin-left: 10px;">
+                        <div style="position: absolute; top: 0; left: 0; background: white; border: 1px solid #ddd; border-radius: 4px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 100;">
+                            <div style="padding: 5px; cursor: pointer;" @click="handleMenuClick('option1')">选项 1</div>
+                            <div style="padding: 5px; cursor: pointer;" @click="handleMenuClick('option2')">选项 2</div>
+                            <div style="padding: 5px; cursor: pointer;" @click="handleMenuClick('option3')">选项 3</div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="selectedOption" class="status success">
+                        选择了: {{ selectedOption }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 6. 指令修饰符和参数 -->
+            <div class="section">
+                <h3>6. 指令修饰符和参数演示</h3>
+                
+                <div class="demo-item">
+                    <h4>动态参数</h4>
+                    <div style="margin: 10px 0;">
+                        <label>事件类型: </label>
+                        <select v-model="eventType" class="input-field">
+                            <option value="click">click</option>
+                            <option value="mouseenter">mouseenter</option>
+                            <option value="mouseleave">mouseleave</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn" @[eventType]="handleDynamicEvent">
+                        触发 {{ eventType }} 事件
+                    </button>
+                    
+                    <div class="status info">{{ dynamicEventMessage }}</div>
+                    
+                    <div class="code-block">
+&lt;button @[eventType]="handleDynamicEvent"&gt;
+  触发 {{ eventType }} 事件
+&lt;/button&gt;
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 7. 性能对比演示 -->
+            <div class="section">
+                <h3>7. 性能对比演示</h3>
+                
+                <div class="demo-item">
+                    <h4>v-if vs v-show 性能对比</h4>
+                    <div class="grid">
+                        <div>
+                            <button class="btn" @click="performanceTest('v-if')">v-if 性能测试</button>
+                            <div class="status info">v-if 切换次数: {{ vIfCount }}</div>
+                        </div>
+                        <div>
+                            <button class="btn" @click="performanceTest('v-show')">v-show 性能测试</button>
+                            <div class="status info">v-show 切换次数: {{ vShowCount }}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 20px; margin: 20px 0;">
+                        <div style="flex: 1;">
+                            <div v-if="testVisible" style="padding: 20px; background: #e8f5e8;">
+                                v-if 测试内容 (DOM 创建/销毁)
+                            </div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div v-show="testVisible" style="padding: 20px; background: #fff3cd;">
+                                v-show 测试内容 (display 切换)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    // 条件渲染
+                    showContent: true,
+                    isVisible: true,
+                    
+                    // 列表渲染
+                    items: [
+                        { id: 1, name: 'Vue.js' },
+                        { id: 2, name: 'React' },
+                        { id: 3, name: 'Angular' }
+                    ],
+                    userInfo: {
+                        name: '张三',
+                        age: 25,
+                        email: 'zhangsan@example.com',
+                        role: '前端工程师'
+                    },
+                    
+                    // 事件绑定
+                    eventMessage: '等待事件触发...',
+                    formData: '',
+                    
+                    // 双向绑定
+                    textInput: 'Hello Vue3',
+                    textareaInput: '',
+                    checkboxValue: false,
+                    radioValue: '',
+                    selectValue: '',
+                    lazyInput: '',
+                    numberInput: 0,
+                    trimInput: '',
+                    
+                    // 自定义指令
+                    showFocusInput: false,
+                    isLoading: false,
+                    currentPermission: 'user',
+                    showDropdown: false,
+                    selectedOption: '',
+                    
+                    // 动态参数
+                    eventType: 'click',
+                    dynamicEventMessage: '等待动态事件...',
+                    
+                    // 性能测试
+                    testVisible: true,
+                    vIfCount: 0,
+                    vShowCount: 0
+                }
+            },
+            
+            methods: {
+                toggleShow() {
+                    this.showContent = !this.showContent
+                },
+                
+                toggleVisible() {
+                    this.isVisible = !this.isVisible
+                },
+                
+                addItem() {
+                    const id = this.items.length + 1
+                    this.items.push({
+                        id: Date.now(),
+                        name: `新项目 ${id}`
+                    })
+                },
+                
+                removeItem() {
+                    if (this.items.length > 0) {
+                        this.items.pop()
+                    }
+                },
+                
+                handleClick() {
+                    this.eventMessage = `单击事件触发 - ${new Date().toLocaleTimeString()}`
+                },
+                
+                handleDoubleClick() {
+                    this.eventMessage = `双击事件触发 - ${new Date().toLocaleTimeString()}`
+                },
+                
+                handleSubmit() {
+                    this.eventMessage = `表单提交，数据: ${this.formData}`
+                },
+                
+                parentClick() {
+                    this.eventMessage = '父级区域被点击'
+                },
+                
+                childClick() {
+                    this.eventMessage = '子按钮被点击（阻止冒泡）'
+                },
+                
+                toggleLoading() {
+                    this.isLoading = !this.isLoading
+                },
+                
+                handleMenuClick(option) {
+                    this.selectedOption = option
+                    this.showDropdown = false
+                },
+                
+                handleDynamicEvent() {
+                    this.dynamicEventMessage = `${this.eventType} 事件被触发 - ${new Date().toLocaleTimeString()}`
+                },
+                
+                performanceTest(type) {
+                    const iterations = 100
+                    const startTime = performance.now()
+                    
+                    if (type === 'v-if') {
+                        for (let i = 0; i < iterations; i++) {
+                            this.testVisible = !this.testVisible
+                            this.vIfCount++
+                        }
+                    } else {
+                        for (let i = 0; i < iterations; i++) {
+                            this.testVisible = !this.testVisible
+                            this.vShowCount++
+                        }
+                    }
+                    
+                    const endTime = performance.now()
+                    console.log(`${type} 性能测试: ${iterations} 次切换耗时 ${(endTime - startTime).toFixed(2)}ms`)
+                }
+            }
+        })
+        
+        // 自定义指令定义
+        .directive('focus', {
+            mounted(el) {
+                el.focus()
+            }
+        })
+        
+        .directive('loading', {
+            mounted(el, binding) {
+                updateLoading(el, binding)
+            },
+            updated(el, binding) {
+                updateLoading(el, binding)
+            }
+        })
+        
+        .directive('permission', {
+            mounted(el, binding) {
+                checkPermissionAndUpdate(el, binding)
+            },
+            updated(el, binding) {
+                checkPermissionAndUpdate(el, binding)
+            }
+        })
+        
+        .directive('clickoutside', {
+            mounted(el, binding) {
+                el._clickOutsideHandler = (event) => {
+                    if (!el.contains(event.target)) {
+                        binding.value()
+                    }
+                }
+                document.addEventListener('click', el._clickOutsideHandler)
+            },
+            unmounted(el) {
+                document.removeEventListener('click', el._clickOutsideHandler)
+            }
+        })
+        
+        .mount('#app')
+
+        // 辅助函数
+        function updateLoading(el, binding) {
+            if (binding.value) {
+                showLoading(el)
+            } else {
+                hideLoading(el)
+            }
+        }
+
+        function showLoading(el) {
+            if (el._loadingMask) return
+            
+            const mask = document.createElement('div')
+            mask.className = 'loading-mask'
+            mask.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">加载中...</div>
+            `
+            
+            el.style.position = 'relative'
+            el.appendChild(mask)
+            el._loadingMask = mask
+        }
+
+        function hideLoading(el) {
+            if (el._loadingMask) {
+                el._loadingMask.remove()
+                el._loadingMask = null
+            }
+        }
+
+        function checkPermissionAndUpdate(el, binding) {
+            const requiredPermission = binding.arg
+            const userPermission = binding.value
+            
+            const hasPermission = checkUserPermission(userPermission, requiredPermission)
+            
+            if (!hasPermission) {
+                el.style.display = 'none'
+            } else {
+                el.style.display = ''
+            }
+        }
+
+        function checkUserPermission(userRole, requiredPermission) {
+            const permissions = {
+                admin: ['admin', 'user', 'guest'],
+                user: ['user', 'guest'],
+                guest: ['guest']
+            }
+            
+            return permissions[userRole]?.includes(requiredPermission) || false
+        }
+    </script>
+</body>
+</html> 

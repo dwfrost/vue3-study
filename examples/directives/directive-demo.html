@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第9章：Vue3指令系统演示</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .input-field {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        
+        .loading-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .demo-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .status {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>🚀 Vue3指令系统完整演示</h1>
+            
+            <!-- v-if/v-show 演示 -->
+            <div class="section">
+                <h3>1. 条件渲染指令</h3>
+                
+                <div class="demo-item">
+                    <button class="btn" @click="showContent = !showContent">
+                        切换 v-if 内容
+                    </button>
+                    <div v-if="showContent" class="status">
+                        ✅ v-if 控制的内容 (DOM存在/不存在)
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <button class="btn" @click="isVisible = !isVisible">
+                        切换 v-show 内容
+                    </button>
+                    <div v-show="isVisible" class="status">
+                        ✅ v-show 控制的内容 (display切换)
+                    </div>
+                </div>
+            </div>
+            
+            <!-- v-for 演示 -->
+            <div class="section">
+                <h3>2. 列表渲染指令</h3>
+                
+                <div class="demo-item">
+                    <button class="btn" @click="addItem">添加项目</button>
+                    <button class="btn" @click="removeItem">删除项目</button>
+                    
+                    <ul>
+                        <li v-for="(item, index) in items" :key="item.id" class="status">
+                            {{ index + 1 }}. {{ item.name }} (ID: {{ item.id }})
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- v-model 演示 -->
+            <div class="section">
+                <h3>3. 双向绑定指令</h3>
+                
+                <div class="demo-item">
+                    <div>
+                        <label>文本输入: </label>
+                        <input v-model="textInput" class="input-field">
+                        <span>值: {{ textInput }}</span>
+                    </div>
+                    
+                    <div>
+                        <label>复选框: </label>
+                        <input type="checkbox" v-model="checkboxValue">
+                        <span>{{ checkboxValue ? '已选中' : '未选中' }}</span>
+                    </div>
+                    
+                    <div>
+                        <label>选择框: </label>
+                        <select v-model="selectValue" class="input-field">
+                            <option value="">请选择</option>
+                            <option value="vue">Vue.js</option>
+                            <option value="react">React</option>
+                        </select>
+                        <span>选择: {{ selectValue }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 事件绑定演示 -->
+            <div class="section">
+                <h3>4. 事件绑定指令</h3>
+                
+                <div class="demo-item">
+                    <button class="btn" @click="handleClick">点击事件</button>
+                    <button class="btn" @dblclick="handleDoubleClick">双击事件</button>
+                    <div class="status">{{ eventMessage }}</div>
+                </div>
+            </div>
+            
+            <!-- 自定义指令演示 -->
+            <div class="section">
+                <h3>5. 自定义指令</h3>
+                
+                <div class="demo-item">
+                    <h4>v-focus 聚焦指令</h4>
+                    <button class="btn" @click="showInput = !showInput">
+                        {{ showInput ? '隐藏' : '显示' }}输入框
+                    </button>
+                    <div v-if="showInput">
+                        <input v-focus placeholder="自动聚焦" class="input-field">
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h4>v-loading 加载指令</h4>
+                    <button class="btn" @click="isLoading = !isLoading">
+                        {{ isLoading ? '停止' : '开始' }}加载
+                    </button>
+                    
+                    <div v-loading="isLoading" style="position: relative; height: 100px; margin: 10px 0; background: #f0f0f0; border-radius: 4px;">
+                        <div v-if="!isLoading" style="padding: 20px; text-align: center;">
+                            内容区域
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    showContent: true,
+                    isVisible: true,
+                    items: [
+                        { id: 1, name: 'Vue.js' },
+                        { id: 2, name: 'React' }
+                    ],
+                    textInput: 'Hello Vue3',
+                    checkboxValue: false,
+                    selectValue: '',
+                    eventMessage: '等待事件触发...',
+                    showInput: false,
+                    isLoading: false
+                }
+            },
+            
+            methods: {
+                addItem() {
+                    this.items.push({
+                        id: Date.now(),
+                        name: `项目 ${this.items.length + 1}`
+                    })
+                },
+                
+                removeItem() {
+                    this.items.pop()
+                },
+                
+                handleClick() {
+                    this.eventMessage = `点击事件触发 - ${new Date().toLocaleTimeString()}`
+                },
+                
+                handleDoubleClick() {
+                    this.eventMessage = `双击事件触发 - ${new Date().toLocaleTimeString()}`
+                }
+            }
+        })
+        
+        // 自定义指令
+        .directive('focus', {
+            mounted(el) {
+                el.focus()
+            }
+        })
+        
+        .directive('loading', {
+            mounted(el, binding) {
+                updateLoading(el, binding)
+            },
+            updated(el, binding) {
+                updateLoading(el, binding)
+            }
+        })
+        
+        .mount('#app')
+
+        // 辅助函数
+        function updateLoading(el, binding) {
+            if (binding.value) {
+                showLoading(el)
+            } else {
+                hideLoading(el)
+            }
+        }
+
+        function showLoading(el) {
+            if (el._loadingMask) return
+            
+            const mask = document.createElement('div')
+            mask.className = 'loading-mask'
+            mask.innerHTML = '<div class="loading-spinner"></div>'
+            
+            el.appendChild(mask)
+            el._loadingMask = mask
+        }
+
+        function hideLoading(el) {
+            if (el._loadingMask) {
+                el._loadingMask.remove()
+                el._loadingMask = null
+            }
+        }
+    </script>
+</body>
+</html> 
