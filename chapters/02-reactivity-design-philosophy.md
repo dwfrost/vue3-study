@@ -742,7 +742,6 @@ graph TD
     style F fill:#ffebee
     style K fill:#e8f5e8
 ```
-```
 
 **嵌套effect的处理：**
 
