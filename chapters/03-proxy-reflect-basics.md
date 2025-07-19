@@ -473,7 +473,7 @@ const instance = Reflect.construct(Constructor, args)
 const obj = new Proxy({}, {
   get(target, property) {
     console.log(`访问: ${property}`)
-    return target[property]  // 可能有问题
+    return target[property]  // 可能有问题 ❌ this指向target，不是receiver
   }
 })
 
@@ -992,5 +992,13 @@ console.log(logger.getMostAccessed())  // { property: 'name', count: 2 }
 1. 为什么Vue3选择Proxy而不是继续优化Object.defineProperty？
 2. 在什么情况下你会选择不使用Reflect而直接操作target？
 3. 如何设计一个高性能的Proxy处理器？
+  按需拦截 - 只拦截真正需要的操作
+  热点缓存 - 缓存频繁访问的数据
+  批量处理 - 减少更新触发频率
+  类型优化 - 根据数据类型使用特定策略
+  内存管理 - 使用 WeakMap 避免内存泄漏
+  性能监控 - 内置性能分析工具
+  快速路径 - 为常见情况提供快速处理
+  复用对象 - 避免重复创建 handler
 
 **下一章预告**：我们将深入学习Vue3响应式系统的核心实现，包括reactive、ref、computed等API的具体实现原理。 

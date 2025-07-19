@@ -297,6 +297,8 @@ function triggerEffects(dep) {
   const effects = isArray(dep) ? dep : [...dep]
   
   // 先触发computed的effect
+  // fix: https://github.com/vuejs/core/issues/5720
+  // 在某个effect中，如果computed effect和普通effect同时存在，如果普通effect先触发，那么此时获取的computed值为旧值，不符合预期
   for (const effect of effects) {
     if (effect.computed) {
       triggerEffect(effect)
@@ -962,7 +964,7 @@ function flushJobs(seen) {
     for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
       const job = queue[flushIndex]
       if (job && job.active !== false) {
-        callWithErrorHandling(job, null, ErrorCodes.SCHEDULER)
+        callWithErrorHandling(job, null, ErrorCodes.SCHEDULER) // 执行job()
       }
     }
   } finally {
